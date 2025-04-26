@@ -1,51 +1,79 @@
-import { createFalconElement } from "../src/core.js";
+// examples/app.js
+// Import the renamed function
+import { createFalconElement, render } from "../src/core.js";
+import { createSignal, createEffect } from "../src/reactivity.js";
 
-const appTitle = createFalconElement(
-  "h1",
-  { id: "app-title", class: "title" },
-  "Welcome to FalconJS"
-);
+// --- Reactive State ---
+const [count, setCount] = createSignal(0);
+const [inputText, setInputText] = createSignal("Initial Text");
+const doubleCount = () => count() * 2;
 
-const appDescription = createFalconElement(
-  "p",
-  { class: "description" },
-  "This is a simple example of using FalconJS to create HTML elements."
-);
+// --- Components (using createFalconElement) ---
+function CounterDisplay() {
+  // Use createFalconElement instead of createElement
+  return createFalconElement("p", {}, "Count: ", count);
+}
 
-const appButton = createFalconElement(
-  "button",
-  {
-    id: "app-button",
-    class: "button",
-    onClick: () => alert("Button clicked!"),
-  },
-  "Click Falcon Button"
-);
+function DoubleCounterDisplay() {
+  return createFalconElement("p", {}, "Double Count: ", doubleCount);
+}
 
-const appContainer = createFalconElement(
-  "div",
-  { id: "app-container", class: "container" },
-  appTitle,
-  appDescription,
-  appButton
-);
+function ClickButton() {
+  const handleClick = () => {
+    setCount(count() + 1);
+  };
+  return createFalconElement(
+    "button",
+    { onclick: handleClick },
+    "Increment Count"
+  );
+}
 
-// Get the root element from the HTML
+function TextInput() {
+  const handleInput = (event) => {
+    setInputText(event.target.value);
+  };
+  return createFalconElement("input", {
+    type: "text",
+    value: inputText,
+    oninput: handleInput,
+  });
+}
+
+function DisplayInputText() {
+  return createFalconElement("p", {}, "You typed: ", inputText);
+}
+
+// --- Main App Component (using createFalconElement) ---
+function App() {
+  // Use createFalconElement throughout
+  return createFalconElement(
+    "div",
+    { id: "app-container" },
+    createFalconElement("h1", {}, "My Falcon Framework!"), // Updated title
+    CounterDisplay(),
+    DoubleCounterDisplay(),
+    ClickButton(),
+    createFalconElement("hr"),
+    TextInput(),
+    DisplayInputText()
+  );
+}
+
+// --- Rendering Logic ---
 const rootElement = document.getElementById("root");
+const appElement = App();
+render(appElement, rootElement); // Using the original 'render' name for now
 
-// Append our created element structure to the DOM
-rootElement.appendChild(appContainer);
+console.log("Falcon App rendered!");
 
-// we can also use the createFalconElement function to create more complex structures
-const nestedElement = createFalconElement(
-  "div",
-  { class: "nested" },
-  createFalconElement("p", null, "This is a Falcon nested paragraph."),
-  createFalconElement("span", null, "This is a Falcon nested span.")
-);
-// Append the nested element to the appContainer
-rootElement.appendChild(nestedElement);
-// we can also create elements with no properties or children
-const emptyElement = createFalconElement("div");
-// Append the empty element to the appContainer
-rootElement.appendChild(emptyElement);
+// Example of updating signals after initial render
+setTimeout(() => {
+  console.log("Setting count to 10 programmatically after 2 seconds...");
+  setCount(10);
+}, 2000);
+
+setTimeout(() => {
+  console.log("Setting input text programmatically after 4 seconds...");
+  setInputText("Changed from timeout!");
+}, 4000);
