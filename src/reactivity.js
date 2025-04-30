@@ -91,7 +91,6 @@ export function createEffect(callback) {
  * @returns {Function} A getter function for the memoized value.
  */
 export function createMemo(fn) {
-  // Original name, refined logic
   let memoizedValue;
   let isInitialized = false;
   // Internal signal used ONLY to trigger effects that depend on this memo
