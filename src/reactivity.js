@@ -1,44 +1,66 @@
 // Global variable to track the currently running effect
 let currentObserver = null;
 
-/**
- * Creates a reactive signal.
- * @param {*} initialValue The initial value of the signal.
- * @returns {[Function, Function]} A tuple [getValue, setValue].
- */
-export function createSignal(initialValue) {
+export function createSignal(initialValue, options) {
+  // Accept options
   let value = initialValue;
-  // Set to store observers (effects) that depend on this signal
   const observers = new Set();
+  // --- Add/Restore this line ---
+  // If options.equals is explicitly false, use a function that always returns false.
+  // Otherwise, use Object.is for comparison.
+  const equals = options?.equals === false ? () => false : Object.is;
+  // --- End Add/Restore ---
 
-  // Getter function
+  const signalId = `Signal[${initialValue}]`; // Basic identifier (keep logs)
+
   const getValue = () => {
-    // If there's an observer running, subscribe it to this signal
     if (currentObserver) {
+      const observerName =
+        currentObserver.name ||
+        'effect' + Math.random().toString(36).substring(7);
+      console.log(
+        `%c${signalId}: Adding observer: ${observerName}`,
+        'color: teal;',
+      );
       observers.add(currentObserver);
-      // NEW: Add cleanup dependency tracking (Advanced - for later optimization if needed)
-      // currentObserver.dependencies.add(observers); // We might need this later if we implement manual dispose()
     }
     return value;
   };
 
-  // Setter function
   const setValue = newValue => {
-    // Use Object.is for comparison (handles NaN and -0/+0 correctly)
-    if (!Object.is(value, newValue)) {
+    // --- Modify this line ---
+    if (!equals(value, newValue)) {
+      // Use the equals function we defined above
+      // --- End Modify ---
+      const oldValue = value;
       value = newValue;
-      // Notify all observers
-      // Create a copy before iterating to handle potential nested updates
+      console.log(
+        `%c${signalId}: Value set from ${oldValue} to ${value}. Notifying ${observers.size} observers.`,
+        'color: red; font-weight: bold;',
+      );
       const observersToNotify = new Set(observers);
       observersToNotify.forEach(observer => {
-        // Check if the observer function still exists (might be cleaned up)
+        const observerName =
+          observer.name || 'effect' + Math.random().toString(36).substring(7);
+        console.log(
+          `%c${signalId}: Notifying observer: ${observerName}`,
+          'color: red;',
+        );
         if (typeof observer === 'function') {
           observer();
         } else {
-          // Optional: Remove dead observers if we implement manual cleanup later
-          // observers.delete(observer);
+          console.warn(
+            `${signalId}: Attempted to notify non-function observer:`,
+            observer,
+          );
+          observers.delete(observer);
         }
       });
+    } else {
+      console.log(
+        `%c${signalId}: Skipping update from ${value} to ${newValue} due to equals check.`,
+        'color: gray;',
+      ); // Log skips
     }
   };
 
@@ -46,8 +68,64 @@ export function createSignal(initialValue) {
 }
 
 /**
+ * Creates a memoized computation based on signals read within the function.
+ * @param {Function} fn The function to memoize.
+ * @returns {Function} A getter function for the memoized value.
+ */
+export function createMemo(fn) {
+  // ... other memo code from previous steps...
+  console.log('createMemo: Initializing memo for function:', fn.toString());
+  let memoizedValue;
+  let isInitialized = false;
+  // This line is key: passes the option to disable equality check for the trigger signal
+  const [trackMemo, triggerMemo] = createSignal(undefined, { equals: false });
+
+  createEffect(() => {
+    // Effect B
+    console.log('%ccreateMemo: Internal effect (B) START', 'color: blue;');
+    const newValue = fn();
+    console.log('%c  Calculated newValue:', 'color: blue;', newValue);
+    if (!isInitialized || !Object.is(memoizedValue, newValue)) {
+      // Check actual value change
+      console.log(
+        '%c  Value changed! Old:',
+        'color: blue;',
+        memoizedValue,
+        'New:',
+        newValue,
+      );
+      memoizedValue = newValue;
+      isInitialized = true;
+      console.log('%c  Calling triggerMemo()', 'color: blue;');
+      triggerMemo(); // This will now call setValue on Signal[undefined] which uses equals = () => false
+    } else {
+      console.log('%c  Value NOT changed.', 'color: blue;');
+    }
+    console.log('%ccreateMemo: Internal effect (B) END', 'color: blue;');
+  });
+
+  // The getter function returned to the user
+  return () => {
+    // Getter C
+    console.log('%ccreateMemo: Getter (C) called.', 'color: green;');
+    const observerName = currentObserver
+      ? currentObserver.name ||
+        'effect' + Math.random().toString(36).substring(7)
+      : 'none';
+    console.log('%c  Current observer:', 'color: green;', observerName);
+    trackMemo(); // This subscribes the caller (Effect D) to Signal[undefined]
+    if (!isInitialized) {
+      // ... synchronous compute logic ...
+    }
+    console.log('%c  Returning memoizedValue:', 'color: green;', memoizedValue);
+    return memoizedValue;
+  };
+}
+
+/**
  * Creates an effect that re-runs when its dependencies change.
  * The callback can optionally return a cleanup function.
+ * Initial execution is deferred using queueMicrotask.
  * @param {Function} callback The function to run as an effect. Should return the cleanup function if needed.
  */
 export function createEffect(callback) {
@@ -70,67 +148,23 @@ export function createEffect(callback) {
 
     try {
       // Run the user's callback and potentially get a new cleanup function
+      console.log('Effect Execute: Running user callback'); // <-- Add log here
       cleanup = callback(); // Store the returned value
     } catch (err) {
       console.error('Error during effect execution:', err);
       cleanup = undefined; // Ensure faulty cleanup isn't stored
     } finally {
+      console.log('Effect Execute: Clearing currentObserver'); // <-- Add log here
       currentObserver = null;
     }
   };
 
-  // Run the effect immediately the first time
-  execute();
+  // --- MODIFICATION ---
+  // Schedule the FIRST execution asynchronously using queueMicrotask
+  // Subsequent executions triggered by signals will run normally based on setValue notifications.
+  console.log('createEffect: Scheduling initial execution'); // <-- Add log here
+  queueMicrotask(execute);
+  // --- END MODIFICATION ---
 
   // We are not returning a manual dispose function for now.
-}
-
-/**
- * Creates a memoized computation based on signals read within the function.
- * @param {Function} fn The function to memoize.
- * @returns {Function} A getter function for the memoized value.
- */
-export function createMemo(fn) {
-  let memoizedValue;
-  let isInitialized = false;
-  // Internal signal used ONLY to trigger effects that depend on this memo
-  const [trackMemo, triggerMemo] = createSignal(undefined, { equals: false });
-
-  createEffect(() => {
-    // This effect recalculates the value when fn's dependencies change
-    const newValue = fn();
-    if (!isInitialized || !Object.is(memoizedValue, newValue)) {
-      memoizedValue = newValue;
-      isInitialized = true;
-      // Notify downstream effects that *this memo's value* has changed
-      triggerMemo();
-    }
-  });
-
-  // The getter function returned to the user
-  return () => {
-    // When this getter is called within an effect,
-    // it registers a dependency on `trackMemo`
-    trackMemo();
-    // Note: isInitialized check might still be needed if used outside effects,
-    // or if scheduling allows reading before the initial effect runs.
-    // For simplicity, we assume the effect runs at least once before read.
-    if (!isInitialized) {
-      // This can happen if the memo is read outside of an effect/component
-      // before the initial computation. Let's compute synchronously in this edge case.
-      // This is a deviation from Solid's lazy evaluation but simpler for now.
-      console.warn(
-        'Memo read before initial computation; computing synchronously.',
-      );
-      try {
-        memoizedValue = fn();
-        isInitialized = true;
-      } catch (err) {
-        console.error('Error computing memo synchronously:', err);
-        // What should we return? Undefined? Throw?
-        return undefined;
-      }
-    }
-    return memoizedValue;
-  };
 }
