@@ -1,33 +1,26 @@
-// examples/app.js
-
-// Import core functions including Show
 import { createFalconElement, render, Show } from '../src/core.js';
-// Import reactivity functions including createMemo
-import { createSignal, createEffect, createMemo } from '../src/reactivity.js';
+import { createSignal, createMemo } from '../src/reactivity.js';
 
 // --- Reactive State ---
 const [count, setCount] = createSignal(0);
+
 // Signal to control the visibility of the counter section
 const [showCounter, setShowCounter] = createSignal(true);
-const [inputText, setInputText] = createSignal('Initial Text');
+const [inputText, setInputText] = createSignal('');
 
-// --- Memos ---
-// Explicitly use createMemo for derived values
+// use createMemo for derived values
 const doubleCount = createMemo(() => {
-  // console.log("Memo: Calculating doubleCount"); // Optional: keep if needed for debug
+  console.log('Memo: Calculating doubleCount');
   return count() * 2;
 });
 const isEven = createMemo(() => count() % 2 === 0);
 
 // --- Components (using createFalconElement) ---
-
-// Displays the current count
 function CounterDisplay() {
   // Pass the signal getter function directly as a child for reactive text
   return createFalconElement('p', {}, 'Count: ', count);
 }
 
-// Displays the doubled count (now uses a working memo)
 // Wrapped in its own Show to only appear when count > 5
 function DoubleCounterDisplay() {
   const shouldShow = createMemo(() => count() > 5); // Memoize the condition
@@ -91,10 +84,8 @@ function DisplayInputText() {
 function App() {
   return createFalconElement(
     'div',
-    { id: 'app-container', class: 'counter-section' }, // Add some basic styling
-
-    createFalconElement('h1', {}, 'FalconJS'),
-
+    { id: 'app-container', class: 'counter-section' },
+    createFalconElement('h1', {}, 'FALCON JS'),
     // Add the button to toggle the counter section's visibility
     ToggleButton(),
 
