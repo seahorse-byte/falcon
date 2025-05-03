@@ -91,9 +91,9 @@ function DisplayInputText() {
 function App() {
   return createFalconElement(
     'div',
-    { id: 'app-container', style: 'padding: 15px; border: 1px solid #ccc;' }, // Add some basic styling
+    { id: 'app-container', class: 'counter-section' }, // Add some basic styling
 
-    createFalconElement('h1', {}, 'My Falcon Framework!'),
+    createFalconElement('h1', {}, 'FalconJS'),
 
     // Add the button to toggle the counter section's visibility
     ToggleButton(),
@@ -151,23 +151,3 @@ if (!rootElement) {
   render(App, rootElement);
   console.log('Falcon App rendered!');
 }
-
-// --- Example timeouts (Optional) ---
-/*
-setTimeout(() => {
-  console.log("Setting count to 10 programmatically after 2 seconds...");
-  setCount(10);
-}, 2000);
-
-setTimeout(() => {
-  console.log("Setting input text programmatically after 4 seconds...");
-  setInputText("Changed from timeout!");
-}, 4000);
-
-setTimeout(() => {
-    if (showCounter) { // Check if showCounter signal exists
-         console.log("Toggling counter visibility programmatically after 6 seconds...");
-         setShowCounter(false);
-    }
-}, 6000);
-*/
