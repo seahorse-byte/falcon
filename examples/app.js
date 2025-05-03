@@ -105,7 +105,7 @@ function App() {
       // This div and its contents will only be rendered when showCounter() is true
       createFalconElement(
         'div',
-        { style: 'border: 1px solid blue; padding: 10px; margin-top: 5px;' },
+        { class: 'counter-section' },
         CounterDisplay(),
         DoubleCounterDisplay(), // Contains nested Show component
         ClickButton(),
