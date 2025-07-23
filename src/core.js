@@ -41,7 +41,7 @@ export function createFalconElement(tag, props, ...children) {
 
   // Append children (with reactivity)
   for (const child of children) {
-    appendChild(element, child); // Use helper function for appending
+    appendChild(element, child);
   }
 
   return element;
@@ -106,11 +106,6 @@ export function render(rootContent, container) {
     );
   }
 }
-
-// Add createMemo to your imports at the top of src/core.js
-// e.g., import { createEffect, createMemo } from "./reactivity.js";
-
-// --- Conditional Rendering ---
 
 /**
  * Conditionally renders children or a fallback based on a reactive condition.
@@ -285,196 +280,67 @@ export function Show(props, ...children) {
   return marker;
 }
 
-// Make sure Show is exported along with other core functions
-// e.g., export { createFalconElement, render, appendChild, Show };
+// Helper to ensure we're always working with a DOM Node
+function normalizeNode(content) {
+  if (content instanceof Node) return content;
+  if (content == null || typeof content === 'boolean') {
+    return document.createComment('falcon-empty-content');
+  }
+  return document.createTextNode(String(content));
+}
 
-/**
- * Conditionally renders children or a fallback based on a reactive condition.
- * @param {object} props - Properties object.
- * @param {Function} props.when - A function (signal getter or memo) returning a boolean condition.
- * @param {*} [props.fallback] - Content to render when the condition is false. Can be Node, string, number, or function returning one.
- * @param {...*} children - Content to render when the condition is true. Can be Nodes, strings, numbers, or functions returning them.
- * @returns {Comment} A comment node acting as an anchor for the conditional content.
- */
-// export function Show(props, ...children) {
-//   const { when, fallback } = props;
+export function For(props) {
+  const mapFn = props.children?.[0];
+  if (typeof mapFn !== 'function') {
+    console.error('<For> component requires a function as its only child.');
+    return normalizeNode(null);
+  }
 
-//   // Use a comment node as an anchor/marker in the DOM
-//   const marker = document.createComment('falcon-show');
-//   let currentContent = null; // Keep track of the currently rendered node/fragment
+  const startMarker = document.createComment('falcon-for-start');
+  const endMarker = document.createComment('falcon-for-end');
+  let renderedNodes = [];
 
-//   // Memoize the condition for efficiency, especially if it's complex
-//   // Note: If `when` is already a signal getter, createMemo might be slightly redundant
-//   // but handles cases where `when` is a complex function using multiple signals.
-//   const condition = createMemo(() => !!when()); // Ensure boolean conversion
+  createEffect(() => {
+    const newItems = props.each(); // Get latest array from signal
+    const parent = startMarker.parentNode;
+    if (!Array.isArray(newItems) || !parent) return;
 
-//   createEffect(
-//     () => {
-//       const showContent = condition(); // Get the boolean value from the memo
-//       const contentToRender = showContent ? children : fallback;
+    console.log(
+      `%cFor Effect: Syncing list with ${newItems.length} items.`,
+      'color: orange;',
+    );
 
-//       // Function to normalize content (resolve functions if necessary)
-//       // This evaluation should happen *inside* the effect if the content itself
-//       // needs to be reactive based on *other* signals. However, for simple cases,
-//       // evaluating here is fine. Let's refine this.
+    // Simple Index-Based Reconciliation
+    for (let i = 0; i < newItems.length; i++) {
+      const newItem = newItems[i];
+      const oldNode = renderedNodes[i];
 
-//       // Clean up previous content
-//       // We need to track the actual nodes inserted, not just the 'contentToRender' variable
-//       if (
-//         currentContent instanceof Node &&
-//         currentContent.parentNode === marker.parentNode
-//       ) {
-//         marker.parentNode.removeChild(currentContent);
-//         currentContent = null; // Reset tracker
-//         // TODO: Add proper cleanup for effects potentially created by the removed content
-//       } else if (Array.isArray(currentContent)) {
-//         // Handle fragment case (multiple nodes)
-//         currentContent.forEach(node => {
-//           if (node.parentNode === marker.parentNode) {
-//             marker.parentNode.removeChild(node);
-//           }
-//         });
-//         currentContent = null;
-//       }
-//       // Note: This simple removal doesn't trigger cleanup effects within the removed nodes yet.
+      if (!oldNode) {
+        // Add new nodes
+        const newNode = normalizeNode(mapFn(newItem, i));
+        parent.insertBefore(newNode, endMarker);
+        renderedNodes.push(newNode);
+      } else if (oldNode._falcon_item_ !== newItem) {
+        // Replace existing nodes if data is different
+        const newNode = normalizeNode(mapFn(newItem, i));
+        parent.replaceChild(newNode, oldNode);
+        renderedNodes[i] = newNode;
+      }
+      // Tag the node with its data item for the next check
+      renderedNodes[i]._falcon_item_ = newItem;
+    }
 
-//       // Render new content
-//       const parent = marker.parentNode;
-//       if (!parent) {
-//         // If marker isn't in the DOM yet, wait for the next effect run
-//         // This can happen if Show is rendered conditionally itself.
-//         return; // Defer rendering
-//       }
+    // Remove extra nodes from the end
+    if (renderedNodes.length > newItems.length) {
+      for (let i = newItems.length; i < renderedNodes.length; i++) {
+        parent.removeChild(renderedNodes[i]);
+      }
+      renderedNodes.length = newItems.length;
+    }
+  });
 
-//       const fragment = document.createDocumentFragment();
-
-//       function renderContentPart(part) {
-//         console.log('    renderContentPart: Received part:', part, typeof part); // Log input
-//         if (typeof part === 'function') {
-//           console.log('    renderContentPart: Calling function...');
-//           renderContentPart(part());
-//         } else if (Array.isArray(part)) {
-//           console.log('    renderContentPart: Processing array:', part); // Log array processing
-//           part.forEach(renderContentPart); // Process each item
-//         } else if (part instanceof Node) {
-//           console.log('    renderContentPart: Part is Node. Appending:', part); // Log appending node attempt
-//           try {
-//             fragment.appendChild(part); // Appends node to fragment
-//             console.log(
-//               '      renderContentPart: Node appended successfully to fragment.',
-//             ); // Log success
-//           } catch (e) {
-//             console.error(
-//               '      renderContentPart: ERROR appending node to fragment:',
-//               e,
-//               'Node:',
-//               part,
-//             ); // Log error
-//           }
-//         } else if (
-//           part !== null &&
-//           part !== undefined &&
-//           typeof part !== 'boolean'
-//         ) {
-//           console.log(
-//             '    renderContentPart: Part is primitive. Appending as text:',
-//             part,
-//           ); // Log appending primitive attempt
-//           try {
-//             fragment.appendChild(document.createTextNode(String(part)));
-//             console.log(
-//               '      renderContentPart: Primitive appended successfully to fragment.',
-//             ); // Log success
-//           } catch (e) {
-//             console.error(
-//               '      renderContentPart: ERROR appending primitive to fragment:',
-//               e,
-//               'Primitive:',
-//               part,
-//             );
-//           }
-//         } else {
-//           console.log('    renderContentPart: Ignoring part:', part); // Log ignored part
-//         }
-//       }
-
-//       // --- Before calling insertBefore ---
-//       console.log('--- Before calling renderContentPart ---');
-//       renderContentPart(contentToRender);
-//       console.log('--- After calling renderContentPart ---');
-//       console.log('    Fragment child count:', fragment.childNodes.length); // Log fragment state
-//       console.log('    Fragment children:', fragment.childNodes);
-
-//       // Insert the fragment's content *after* the marker node
-//       parent.insertBefore(fragment, marker.nextSibling);
-
-//       // Update tracker for next cleanup - need to track actual nodes inserted
-//       // querySelectorAll won't work reliably here. Store the fragment's children.
-//       currentContent = Array.from(fragment.childNodes); // This is incorrect - fragment is empty after insertBefore
-//       // Let's rethink tracking... store the result of renderContentPart directly? No.
-//       // We need to track nodes between the marker and the next sibling *after* insertion.
-
-//       // --- Simplified Tracking (might have issues with nested Show/For) ---
-//       // Let's assume for now that Show controls a single node or set of nodes added directly after the marker.
-//       // A more robust solution involves boundary markers or tracking node lists explicitly.
-
-//       // Store the rendered content reference for cleanup (could be single node or array)
-//       // This is still tricky. Let's revert to simpler tracking for now, assuming single node return from children/fallback functions
-//       // For multiple children, we need a different approach (e.g., wrapping in a div or using fragments carefully)
-
-//       // --- Let's assume children/fallback resolve to a single appendable entity for now ---
-//       currentContent =
-//         parent.childNodes[
-//           Array.prototype.indexOf.call(parent.childNodes, marker) + 1
-//         ];
-//       // A DocumentFragment approach where we track the nodes added is better.
-
-//       // --- Re-attempt with Fragment Tracking ---
-//       const nodesToInsert = document.createDocumentFragment();
-
-//       // Keep track of the nodes we are about to insert
-//       const insertedNodes = Array.from(nodesToInsert.childNodes);
-//       console.log('   Nodes to insert:', insertedNodes); // Check this log output
-
-//       try {
-//         console.log('   Attempting parent.insertBefore...'); // Log before attempt
-//         parent.insertBefore(fragment, marker.nextSibling); // The insertion step
-//         console.log('   Nodes inserted after marker.'); // Log success
-//         // Update tracker only on success
-//         currentContent = insertedNodes;
-//         console.log('   Updated tracked content:', currentContent); // Log tracker update
-//       } catch (error) {
-//         console.error('!!! ERROR during parent.insertBefore:', error); // Explicitly log error
-//         console.error('    Parent:', parent);
-//         console.error('    Fragment:', fragment);
-//         console.error('    Marker:', marker);
-//         console.error("    Marker's nextSibling:", marker.nextSibling);
-//         // Reset content tracker maybe?
-//         currentContent = []; // Or null? Ensure tracker is clean after failure
-//       }
-
-//       // Cleanup previous nodes (use stored `currentContent` which is an array of nodes)
-//       if (Array.isArray(currentContent)) {
-//         currentContent.forEach(node => {
-//           if (node.parentNode === parent) {
-//             parent.removeChild(node);
-//           }
-//         });
-//       }
-
-//       // Insert new nodes
-//       parent.insertBefore(nodesToInsert, marker.nextSibling);
-
-//       // --- Effect Cleanup ---
-//       // Register cleanup for the nodes being removed
-//       // This is complex. We'd need to traverse the removed nodes and call dispose functions if they exist.
-//       // Let's omit deep cleanup for now. The effect's own cleanup handles dependencies correctly.
-//     },
-//     {
-//       /* Options potentially needed later, e.g., defer: true */
-//     },
-//   );
-
-//   // Return the marker node to be placed in the DOM tree
-//   return marker;
-// }
+  const fragment = document.createDocumentFragment();
+  fragment.appendChild(startMarker);
+  fragment.appendChild(endMarker);
+  return fragment;
+}

@@ -1,5 +1,13 @@
-import { createFalconElement, render, Show } from '../src/core.js';
+import { createFalconElement, render, Show, For } from '../src/core.js';
 import { createSignal, createMemo } from '../src/reactivity.js';
+
+// State for the list
+let nextId = 4;
+const [items, setItems] = createSignal([
+  { id: 1, text: 'Learn FalconJs Core' },
+  { id: 2, text: 'Build Conditional Rendering' },
+  { id: 3, text: 'Implement List Rendering' },
+]);
 
 // --- Reactive State ---
 const [count, setCount] = createSignal(0);
@@ -82,6 +90,19 @@ function DisplayInputText() {
 // --- Main App Component ---
 // Assembles the UI using the components and Show for conditional logic
 function App() {
+  const addItem = () => {
+    setItems([...items(), { id: nextId++, text: `New Task #${nextId - 1}` }]);
+  };
+  const removeItem = () => {
+    setItems(items().slice(0, -1));
+  };
+  const updateItem = () => {
+    const newItems = items().slice();
+    if (newItems.length > 0) {
+      newItems[0] = { ...newItems[0], text: newItems[0].text + '!' };
+      setItems(newItems);
+    }
+  };
   return createFalconElement(
     'div',
     { id: 'app-container', class: 'counter-section' },
@@ -129,6 +150,40 @@ function App() {
     // --- Text Input Section ---
     TextInput(),
     DisplayInputText(),
+
+    // FOR
+    createFalconElement('h1', {}, 'Todo List Example'),
+    createFalconElement(
+      'div',
+      { style: 'margin-bottom: 10px;' },
+      createFalconElement('button', { onclick: addItem }, 'Add Item'),
+      createFalconElement(
+        'button',
+        { onclick: removeItem },
+        'Remove Last Item',
+      ),
+      createFalconElement(
+        'button',
+        { onclick: updateItem },
+        'Update First Item',
+      ),
+    ),
+    createFalconElement(
+      'ul',
+      {},
+      For({
+        each: items, // Pass the signal getter
+        children: [
+          // The mapping function
+          (item, index) =>
+            createFalconElement(
+              'li',
+              {},
+              `${index + 1}: [ID: ${item.id}] - ${item.text}`,
+            ),
+        ],
+      }),
+    ),
   );
 }
 
