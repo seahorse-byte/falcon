@@ -298,45 +298,86 @@ export function For(props) {
 
   const startMarker = document.createComment('falcon-for-start');
   const endMarker = document.createComment('falcon-for-end');
-  let renderedNodes = [];
+
+  // We'll store the previous nodes in a Map for fast key-based lookup.
+  let prevNodesMap = new Map();
 
   createEffect(() => {
-    const newItems = props.each(); // Get latest array from signal
+    const newItems = props.each();
     const parent = startMarker.parentNode;
     if (!Array.isArray(newItems) || !parent) return;
 
     console.log(
-      `%cFor Effect: Syncing list with ${newItems.length} items.`,
-      'color: orange;',
+      `%cKeyed For Effect: Syncing list with ${newItems.length} items.`,
+      'color: #4CAF50;',
     );
 
-    // Simple Index-Based Reconciliation
+    const newNodesMap = new Map();
+    const newNodesArray = []; // To hold the ordered list of new nodes
+
+    // --- 1. Reconciliation Loop ---
+    // Iterate through the new data items to build up the new list of nodes.
     for (let i = 0; i < newItems.length; i++) {
-      const newItem = newItems[i];
-      const oldNode = renderedNodes[i];
+      const item = newItems[i];
+      const key = item.id; // Using item.id as the unique key.
 
-      if (!oldNode) {
-        // Add new nodes
-        const newNode = normalizeNode(mapFn(newItem, i));
-        parent.insertBefore(newNode, endMarker);
-        renderedNodes.push(newNode);
-      } else if (oldNode._falcon_item_ !== newItem) {
-        // Replace existing nodes if data is different
-        const newNode = normalizeNode(mapFn(newItem, i));
-        parent.replaceChild(newNode, oldNode);
-        renderedNodes[i] = newNode;
+      if (key == null) {
+        console.warn(
+          "Each item in a <For> list should have a unique 'id' property for keyed reconciliation.",
+          item,
+        );
+        // Fallback or skip if needed, but for now we'll just warn.
       }
-      // Tag the node with its data item for the next check
-      renderedNodes[i]._falcon_item_ = newItem;
+
+      // Check if a node with this key existed in the previous render.
+      const existingNode = prevNodesMap.get(key);
+
+      if (existingNode) {
+        // --- UPDATE / MOVE ---
+        // The node already exists, so we reuse it.
+        // In a more advanced framework, you'd update the node's properties here.
+        // For now, reusing it is the big win.
+        newNodesArray.push(existingNode);
+        newNodesMap.set(key, existingNode);
+        prevNodesMap.delete(key); // Remove from old map, as it's been processed.
+      } else {
+        // --- ADD ---
+        // This is a new item, so create a new DOM node for it.
+        const newNode = normalizeNode(mapFn(item, i));
+        newNode._falcon_item_key_ = key; // Tag the node with its key
+        newNodesArray.push(newNode);
+        newNodesMap.set(key, newNode);
+      }
     }
 
-    // Remove extra nodes from the end
-    if (renderedNodes.length > newItems.length) {
-      for (let i = newItems.length; i < renderedNodes.length; i++) {
-        parent.removeChild(renderedNodes[i]);
+    // --- 2. DOM Manipulation ---
+    // Now, efficiently update the actual DOM to match our newNodesArray.
+    let currentElement = startMarker.nextSibling;
+    for (const newNode of newNodesArray) {
+      if (currentElement === newNode) {
+        // The node is already in the correct position. Move to the next one.
+        currentElement = currentElement.nextSibling;
+      } else {
+        // Insert the new/moved node in the correct place.
+        parent.insertBefore(newNode, currentElement);
       }
-      renderedNodes.length = newItems.length;
     }
+
+    // --- 3. Cleanup ---
+    // Any nodes left in prevNodesMap are no longer in the list and must be removed.
+    // This handles deletions.
+    while (currentElement !== endMarker) {
+      const next = currentElement.nextSibling;
+      // Check if this node was an "old" node that should be removed
+      const key = currentElement._falcon_item_key_;
+      if (prevNodesMap.has(key)) {
+        parent.removeChild(currentElement);
+      }
+      currentElement = next;
+    }
+
+    // The current state becomes the previous state for the next update.
+    prevNodesMap = newNodesMap;
   });
 
   const fragment = document.createDocumentFragment();
