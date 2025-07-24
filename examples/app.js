@@ -9,6 +9,15 @@ const [items, setItems] = createSignal([
   { id: 3, text: 'Implement List Rendering' },
 ]);
 
+// A simple shuffle function
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
 // --- Reactive State ---
 const [count, setCount] = createSignal(0);
 
@@ -90,9 +99,11 @@ function DisplayInputText() {
 // --- Main App Component ---
 // Assembles the UI using the components and Show for conditional logic
 function App() {
-  const addItem = () => {
+  const addItem = () =>
     setItems([...items(), { id: nextId++, text: `New Task #${nextId - 1}` }]);
-  };
+
+  const shuffleItems = () => setItems(shuffle([...items()])); // Create a shuffled copy
+
   const removeItem = () => {
     setItems(items().slice(0, -1));
   };
@@ -152,34 +163,36 @@ function App() {
     DisplayInputText(),
 
     // FOR
-    createFalconElement('h1', {}, 'Todo List Example'),
+    createFalconElement('h1', {}, 'Keyed Todo List'),
+    createFalconElement(
+      'p',
+      {},
+      'Click an item to highlight it. Then shuffle the list!',
+    ),
     createFalconElement(
       'div',
       { style: 'margin-bottom: 10px;' },
       createFalconElement('button', { onclick: addItem }, 'Add Item'),
       createFalconElement(
         'button',
-        { onclick: removeItem },
-        'Remove Last Item',
-      ),
-      createFalconElement(
-        'button',
-        { onclick: updateItem },
-        'Update First Item',
+        { onclick: shuffleItems },
+        'Shuffle Items 🔀',
       ),
     ),
     createFalconElement(
       'ul',
       {},
       For({
-        each: items, // Pass the signal getter
+        each: items,
         children: [
-          // The mapping function
-          (item, index) =>
+          item =>
             createFalconElement(
               'li',
-              {},
-              `${index + 1}: [ID: ${item.id}] - ${item.text}`,
+              {
+                // Add an onclick to toggle a class. THIS STATE will be preserved!
+                onclick: e => e.target.classList.toggle('highlight'),
+              },
+              `[ID: ${item.id}] - ${item.text}`,
             ),
         ],
       }),
