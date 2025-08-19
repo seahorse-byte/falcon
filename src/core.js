@@ -8,45 +8,53 @@ import { createEffect, createMemo } from './reactivity.js';
  * @param {...(Node | string | Function | Comment)} children - Children can be nodes, strings, functions, or the result of helpers like Show().
  * @returns {HTMLElement} The created HTML element.
  */
+// src/core.js
+
 export function createFalconElement(tag, props, ...children) {
+  // 1. Handle Component Functions
+  if (typeof tag === 'function') {
+    return tag({ ...props, children });
+  }
+
+  // 2. Handle Native HTML Elements
   const element = document.createElement(tag);
 
-  // Apply properties/attributes (with reactivity)
+  // 3. Handle Props (Static, Event, and Reactive)
   if (props) {
     for (const [key, value] of Object.entries(props)) {
       if (key.startsWith('on') && typeof value === 'function') {
-        // Event listeners
+        // --- Event Listeners ---
         element.addEventListener(key.substring(2).toLowerCase(), value);
       } else if (typeof value === 'function' && !key.startsWith('on')) {
-        // Reactive attributes (but not event listeners)
+        // --- Reactive Attributes ---
         createEffect(() => {
-          const result = value();
-          // Handle boolean attributes correctly
-          if (typeof result === 'boolean') {
+          const result = value(); // Run the signal/function to get the value
+
+          // Special handling for boolean attributes like 'checked', 'disabled'
+          if (
+            typeof result === 'boolean' &&
+            ['checked', 'disabled', 'selected'].includes(key)
+          ) {
             if (result) {
-              element.setAttribute(key, ''); // Set boolean attribute present
+              element.setAttribute(key, '');
             } else {
-              element.removeAttribute(key); // Remove boolean attribute
+              element.removeAttribute(key);
             }
           } else {
             element.setAttribute(key, result);
           }
         });
-      } else {
-        // Static attributes
+      } else if (key !== 'children') {
+        // --- Static Attributes ---
         element.setAttribute(key, value);
       }
     }
   }
 
-  // Append children (with reactivity)
-  for (const child of children) {
-    appendChild(element, child);
-  }
+  appendChild(element, children);
 
   return element;
 }
-
 /**
  * Helper function to append various child types to a parent element.
  * Handles Nodes, strings, numbers, functions (reactive text), and arrays.
@@ -154,7 +162,6 @@ export function Show(props, ...children) {
     );
 
     // --- 1. Cleanup Phase ---
-    // Remove previously rendered nodes before inserting new ones
     if (Array.isArray(currentContentNodes) && currentContentNodes.length > 0) {
       console.log('   Attempting cleanup of old nodes...');
       currentContentNodes.forEach(node => {
@@ -176,7 +183,7 @@ export function Show(props, ...children) {
     } else {
       console.log('   No previous nodes to cleanup.');
     }
-    currentContentNodes = []; // Reset tracker *before* rendering new content
+    currentContentNodes = [];
 
     // --- 2. Rendering Phase ---
     // Select the content based on the condition
@@ -273,8 +280,8 @@ export function Show(props, ...children) {
     console.log(
       `%cShow Effect END. Condition was: ${showContent}`,
       'font-weight: bold;',
-    ); // Log effect end
-  }); // End of createEffect
+    );
+  });
 
   // The Show component itself only returns the marker node to the main rendering flow
   return marker;

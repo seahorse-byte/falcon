@@ -12,9 +12,7 @@ This document explains the concept of **keyed reconciliation** and details the i
 
 In simple list rendering, the framework only knows about an item's **position** (its index) in an array. Consider this list:
 
-1.  `{ id: 'A', text: 'Apple' }`
-2.  `{ id: 'B', text: 'Banana' }`
-3.  `{ id: 'C', text: 'Carrot' }`
+1.`{ id: 'A', text: 'Apple' }` 2.`{ id: 'B', text: 'Banana' }` 3.`{ id: 'C', text: 'Carrot' }`
 
 If we shuffle the list to be `C, A, B`, an index-based system sees:
 

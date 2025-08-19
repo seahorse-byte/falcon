@@ -1,7 +1,31 @@
 import { createFalconElement, render, Show, For } from '../src/core.js';
-import { createSignal, createMemo } from '../src/reactivity.js';
+import { createSignal, createMemo, createEffect } from '../src/reactivity.js';
 
-// State for the list
+// --- 1. The Reactive Child Component ---
+// This component knows how to handle reactive props.
+function ReactiveGreeting(props) {
+  // `props.name` is the signal's getter function: () => "initial value"
+  const { name } = props;
+
+  // Create a text node that we can update directly.
+  const greetingText = document.createTextNode('');
+
+  // Create an effect that listens to the `name` signal.
+  createEffect(() => {
+    // When the signal from the parent changes,
+    // this effect re-runs and updates the text node's content.
+    const newName = name(); // We call the signal's getter here!
+    console.log(
+      `%cEffect in ReactiveGreeting: Name changed to "${newName}"`,
+      'color: dodgerblue;',
+    );
+    greetingText.textContent = `Hello, ${newName}!`;
+  });
+
+  // The component returns a static element containing our reactive text node.
+  return createFalconElement('h2', {}, greetingText);
+}
+
 let nextId = 4;
 const [items, setItems] = createSignal([
   { id: 1, text: 'Learn FalconJs Core' },
@@ -99,6 +123,14 @@ function DisplayInputText() {
 // --- Main App Component ---
 // Assembles the UI using the components and Show for conditional logic
 function App() {
+  // Create a signal to hold the name.
+
+  const [name, setName] = createSignal('World');
+
+  const handleInput = event => {
+    setName(event.target.value);
+  };
+
   const addItem = () =>
     setItems([...items(), { id: nextId++, text: `New Task #${nextId - 1}` }]);
 
@@ -171,7 +203,7 @@ function App() {
     ),
     createFalconElement(
       'div',
-      { style: 'margin-bottom: 10px;' },
+      { style: 'margin: 10px; display:flex; gap: 10px;' },
       createFalconElement('button', { onclick: addItem }, 'Add Item'),
       createFalconElement(
         'button',
@@ -188,15 +220,28 @@ function App() {
           item =>
             createFalconElement(
               'li',
-              {
-                // Add an onclick to toggle a class. THIS STATE will be preserved!
-                onclick: e => e.target.classList.toggle('highlight'),
-              },
+              { onclick: e => e.target.classList.toggle('highlight') },
               `[ID: ${item.id}] - ${item.text}`,
             ),
         ],
       }),
     ),
+
+    createFalconElement('hr', {}),
+    createFalconElement('br', {}),
+    createFalconElement('br', {}),
+    createFalconElement('h1', {}, 'Reactive Props Demo'),
+    createFalconElement('p', {}, 'Edit the text in the box below.'),
+    createFalconElement('input', {
+      type: 'text',
+      value: name(), // Set initial value
+      oninput: handleInput, // Update signal on every keystroke
+      style: 'padding: 5px; font-size: 1em;',
+    }),
+    createFalconElement('hr', {}),
+
+    // Pass the name signal's getter function directly as a prop.
+    ReactiveGreeting({ name: name }),
   );
 }
 
