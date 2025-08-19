@@ -1,19 +1,16 @@
-// Global variable to track the currently running effect
-let currentObserver = null;
+const effectStack = [];
+
+// Helper to get the currently running effect from the top of the stack.
+const getCurrentObserver = () => effectStack[effectStack.length - 1] || null;
 
 export function createSignal(initialValue, options) {
-  // Accept options
   let value = initialValue;
   const observers = new Set();
-  // --- Add/Restore this line ---
-  // If options.equals is explicitly false, use a function that always returns false.
-  // Otherwise, use Object.is for comparison.
   const equals = options?.equals === false ? () => false : Object.is;
-  // --- End Add/Restore ---
-
-  const signalId = `Signal[${initialValue}]`; // Basic identifier (keep logs)
+  const signalId = `Signal[${initialValue}]`;
 
   const getValue = () => {
+    const currentObserver = getCurrentObserver();
     if (currentObserver) {
       const observerName =
         currentObserver.name ||
@@ -23,21 +20,22 @@ export function createSignal(initialValue, options) {
         'color: teal;',
       );
       observers.add(currentObserver);
+      // Let the observer know about this signal, so it can clean up the subscription later.
+      currentObserver.dependencies.add(observers);
     }
     return value;
   };
 
   const setValue = newValue => {
-    // --- Modify this line ---
     if (!equals(value, newValue)) {
-      // Use the equals function we defined above
-      // --- End Modify ---
       const oldValue = value;
       value = newValue;
       console.log(
         `%c${signalId}: Value set from ${oldValue} to ${value}. Notifying ${observers.size} observers.`,
         'color: red; font-weight: bold;',
       );
+
+      // Notify a static copy of the observers to avoid issues with modification during iteration.
       const observersToNotify = new Set(observers);
       observersToNotify.forEach(observer => {
         const observerName =
@@ -60,33 +58,24 @@ export function createSignal(initialValue, options) {
       console.log(
         `%c${signalId}: Skipping update from ${value} to ${newValue} due to equals check.`,
         'color: gray;',
-      ); // Log skips
+      );
     }
   };
 
   return [getValue, setValue];
 }
 
-/**
- * Creates a memoized computation based on signals read within the function.
- * @param {Function} fn The function to memoize.
- * @returns {Function} A getter function for the memoized value.
- */
 export function createMemo(fn) {
-  // ... other memo code from previous steps...
   console.log('createMemo: Initializing memo for function:', fn.toString());
   let memoizedValue;
   let isInitialized = false;
-  // This line is key: passes the option to disable equality check for the trigger signal
   const [trackMemo, triggerMemo] = createSignal(undefined, { equals: false });
 
   createEffect(() => {
-    // Effect B
     console.log('%ccreateMemo: Internal effect (B) START', 'color: blue;');
     const newValue = fn();
     console.log('%c  Calculated newValue:', 'color: blue;', newValue);
     if (!isInitialized || !Object.is(memoizedValue, newValue)) {
-      // Check actual value change
       console.log(
         '%c  Value changed! Old:',
         'color: blue;',
@@ -97,25 +86,24 @@ export function createMemo(fn) {
       memoizedValue = newValue;
       isInitialized = true;
       console.log('%c  Calling triggerMemo()', 'color: blue;');
-      triggerMemo(); // This will now call setValue on Signal[undefined] which uses equals = () => false
+      triggerMemo();
     } else {
       console.log('%c  Value NOT changed.', 'color: blue;');
     }
     console.log('%ccreateMemo: Internal effect (B) END', 'color: blue;');
   });
 
-  // The getter function returned to the user
   return () => {
-    // Getter C
     console.log('%ccreateMemo: Getter (C) called.', 'color: green;');
+    const currentObserver = getCurrentObserver();
     const observerName = currentObserver
       ? currentObserver.name ||
         'effect' + Math.random().toString(36).substring(7)
       : 'none';
     console.log('%c  Current observer:', 'color: green;', observerName);
-    trackMemo(); // This subscribes the caller (Effect D) to Signal[undefined]
+    trackMemo();
     if (!isInitialized) {
-      // ... synchronous compute logic ...
+      // Synchronous compute for the first run if needed, though the effect handles it.
     }
     console.log('%c  Returning memoizedValue:', 'color: green;', memoizedValue);
     return memoizedValue;
@@ -123,48 +111,72 @@ export function createMemo(fn) {
 }
 
 /**
- * Creates an effect that re-runs when its dependencies change.
- * The callback can optionally return a cleanup function.
- * Initial execution is deferred using queueMicrotask.
- * @param {Function} callback The function to run as an effect. Should return the cleanup function if needed.
+ * Runs all cleanup logic for a given effect.
+ * @param {Function} effect The effect function to clean up.
  */
-export function createEffect(callback) {
-  // Original name
-  let cleanup; // Variable to store the cleanup function from the previous run
-
-  const execute = () => {
-    // --- Run cleanup function before executing the effect again ---
-    if (typeof cleanup === 'function') {
-      try {
-        cleanup(); // Call the cleanup function from the *previous* execution
-      } catch (err) {
-        console.error('Error during effect cleanup:', err);
-      }
+function runCleanup(effect) {
+  // Run all cleanup functions registered via onCleanup
+  for (const cleanupFn of effect.cleanups) {
+    try {
+      cleanupFn();
+    } catch (err) {
+      console.error('Error during onCleanup function:', err);
     }
-    // --- End Cleanup Logic ---
+  }
+  // Clear the cleanup array.
+  effect.cleanups.length = 0;
 
-    currentObserver = execute;
-    // execute.dependencies = new Set(); // For potential future cleanup optimization
+  // Remove this effect from all signals it subscribed to.
+  for (const dependency of effect.dependencies) {
+    dependency.delete(effect);
+  }
+  effect.dependencies.clear();
+}
+
+export function createEffect(callback) {
+  const execute = () => {
+    // 1. Run cleanup for any previous execution of this effect.
+    runCleanup(execute);
+
+    // 2. Set this effect as the current observer.
+    effectStack.push(execute);
 
     try {
-      // Run the user's callback and potentially get a new cleanup function
-      console.log('Effect Execute: Running user callback'); // <-- Add log here
-      cleanup = callback(); // Store the returned value
+      // 3. Run the user's callback.
+      console.log('Effect Execute: Running user callback');
+      callback();
     } catch (err) {
       console.error('Error during effect execution:', err);
-      cleanup = undefined; // Ensure faulty cleanup isn't stored
     } finally {
-      console.log('Effect Execute: Clearing currentObserver'); // <-- Add log here
-      currentObserver = null;
+      // 4. Restore the previous observer.
+      effectStack.pop();
+      console.log('Effect Execute: Finished, removed from stack.');
     }
   };
 
-  // --- MODIFICATION ---
-  // Schedule the FIRST execution asynchronously using queueMicrotask
-  // Subsequent executions triggered by signals will run normally based on setValue notifications.
-  console.log('createEffect: Scheduling initial execution'); // <-- Add log here
-  queueMicrotask(execute);
-  // --- END MODIFICATION ---
+  // Attach properties directly to the effect function
+  execute.dependencies = new Set();
+  execute.cleanups = [];
 
-  // We are not returning a manual dispose function for now.
+  // --- THE FIX ---
+  // Schedule the FIRST execution asynchronously. This gives the DOM time to update
+  // before the effect runs, which is crucial for components like <Show>.
+  // Subsequent runs triggered by signals are synchronous.
+  console.log('createEffect: Scheduling initial execution with queueMicrotask');
+  queueMicrotask(execute);
+}
+/**
+ * Registers a cleanup function to run when the current reactive scope is destroyed.
+ * @param {Function} fn The cleanup function.
+ */
+export function onCleanup(fn) {
+  const currentObserver = getCurrentObserver();
+  if (currentObserver) {
+    // Add the function to the current effect's cleanup list.
+    currentObserver.cleanups.push(fn);
+  } else {
+    console.warn(
+      'onCleanup was called outside of a reactive effect scope and will be ignored.',
+    );
+  }
 }
