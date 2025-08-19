@@ -5,7 +5,104 @@ import {
   createEffect,
   onCleanup,
 } from '../src/reactivity.js';
+import { createResource } from '../src/resource.js';
 import { Route, Link } from '../src/router.js';
+
+const fetchUserData = async userId => {
+  console.log(`Fetching data for user ID: ${userId}...`);
+  // Simulate a network delay
+  await new Promise(resolve => setTimeout(resolve, 1500));
+
+  // fetch('https://jsonplaceholder.typicode.com/todos/1')
+  //     .then(response => response.json())
+  //     .then(json => console.log(json))
+
+  if (Math.random() > 0.3) {
+    // 70% chance of success
+    return {
+      id: userId,
+      name: 'John Doe',
+      email: 'john.doe@example.com',
+    };
+  } else {
+    // 30% chance of failure
+    throw new Error('Failed to fetch user data from the server.');
+  }
+};
+
+// --- 2. Component that Fetches Data ---
+function UserProfile() {
+  // A signal to hold the ID of the user we want to fetch.
+  const [userId, setUserId] = createSignal(1);
+
+  // Create a resource that will re-fetch whenever `userId` changes.
+  const userResource = createResource(() => fetchUserData(userId()));
+
+  return createFalconElement(
+    'div',
+    {},
+    createFalconElement('h2', {}, 'User Profile'),
+    createFalconElement(
+      'div',
+      { style: 'margin-bottom: 10px; display: flex; gap: 10px;' },
+      createFalconElement(
+        'button',
+        { onclick: () => setUserId(1) },
+        'Load User 1',
+      ),
+      createFalconElement(
+        'button',
+        { onclick: () => setUserId(2) },
+        'Load User 2',
+      ),
+      createFalconElement(
+        'button',
+        { onclick: () => setUserId(3) },
+        'Load User 3 (will refetch)',
+      ),
+    ),
+
+    // --- 3. Conditional UI based on Resource State ---
+    Show({
+      when: userResource.loading,
+      children: [
+        createFalconElement(
+          'p',
+          { style: 'color: blue;' },
+          'Loading user data...',
+        ),
+      ],
+    }),
+
+    Show({
+      when: userResource.error,
+      children: [
+        createFalconElement(
+          'p',
+          { style: 'color: red;' },
+          () => `Error: ${userResource.error().message}`,
+        ),
+      ],
+    }),
+
+    Show({
+      // Show the data only when it exists and we are not in a loading state.
+      when: () => userResource() && !userResource.loading(),
+      children: [
+        createFalconElement(
+          'div',
+          {
+            style:
+              'border: 1px solid green; padding: 10px; border-radius: 5px;',
+          },
+          createFalconElement('p', {}, () => `ID: ${userResource().id}`),
+          createFalconElement('p', {}, () => `Name: ${userResource().name}`),
+          createFalconElement('p', {}, () => `Email: ${userResource().email}`),
+        ),
+      ],
+    }),
+  );
+}
 
 // --- 1. Define Page Components ---
 // Each "page" is just a regular component.
@@ -358,6 +455,11 @@ function App() {
         'Timer is hidden.',
       ),
     }),
+    createFalconElement('hr', {}),
+    createFalconElement('br', {}),
+    createFalconElement('br', {}),
+    createFalconElement('h1', {}, 'Async Data Fetching Demo'),
+    UserProfile({}),
   );
 }
 
