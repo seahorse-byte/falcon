@@ -1,12 +1,26 @@
 {
-  "name": "falcon",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "name": "falconjs",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A lightweight, fine-grained reactive JS framework built from scratch.",
+  "type": "module",
+  "main": "./dist/falcon.umd.cjs",
+  "module": "./dist/falcon.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/falcon.es.js",
+      "require": "./dist/falcon.umd.cjs"
+    }
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
 }
