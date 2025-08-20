@@ -1,6 +1,5 @@
 {
   "name": "falconjs",
-  "private": true,
   "version": "0.1.0",
   "description": "A lightweight, fine-grained reactive JS framework built from scratch.",
   "type": "module",
@@ -22,5 +21,14 @@
   },
   "devDependencies": {
     "vite": "^5.0.0"
-  }
+  },
+  "keywords": [
+    "javascript",
+    "framework",
+    "reactive",
+    "fine-grained",
+    "solidjs",
+    "ui"
+  ],
+  "license": "MIT"
 }
