@@ -1,405 +1,88 @@
-import { createFalconElement, render, Show, For } from '../src/core.js';
-import {
-  createSignal,
-  createMemo,
-  createEffect,
-  onCleanup,
-} from '../src/reactivity.js';
-import { createResource } from '../src/resource.js';
-import { Route, Link } from '../src/router.js';
+import { createFalconElement, render, Show, For } from '../src/index.js';
+import { createSignal, createMemo, createEffect } from '../src/index.js';
+import { createStore } from '../src/index.js';
+import { createResource } from '../src/index.js';
+import { Route, Link } from '../src/index.js';
 
-const fetchUserData = async userId => {
-  console.log(`Fetching data for user ID: ${userId}...`);
-  // Simulate a network delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
+// --- 1. Global Store ---
+// A simple store to demonstrate cross-component state.
+const [store, setStore] = createStore({
+  theme: 'light',
+});
 
-  // fetch('https://jsonplaceholder.typicode.com/todos/1')
-  //     .then(response => response.json())
-  //     .then(json => console.log(json))
-
-  if (Math.random() > 0.3) {
-    // 70% chance of success
-    return {
-      id: userId,
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-    };
-  } else {
-    // 30% chance of failure
-    throw new Error('Failed to fetch user data from the server.');
-  }
-};
-
-// --- 2. Component that Fetches Data ---
-function UserProfile() {
-  // A signal to hold the ID of the user we want to fetch.
-  const [userId, setUserId] = createSignal(1);
-
-  // Create a resource that will re-fetch whenever `userId` changes.
-  const userResource = createResource(() => fetchUserData(userId()));
-
-  return createFalconElement(
-    'div',
-    {},
-    createFalconElement('h2', {}, 'User Profile'),
-    createFalconElement(
-      'div',
-      { style: 'margin-bottom: 10px; display: flex; gap: 10px;' },
-      createFalconElement(
-        'button',
-        { onclick: () => setUserId(1) },
-        'Load User 1',
-      ),
-      createFalconElement(
-        'button',
-        { onclick: () => setUserId(2) },
-        'Load User 2',
-      ),
-      createFalconElement(
-        'button',
-        { onclick: () => setUserId(3) },
-        'Load User 3 (will refetch)',
-      ),
-    ),
-
-    // --- 3. Conditional UI based on Resource State ---
-    Show({
-      when: userResource.loading,
-      children: [
-        createFalconElement(
-          'p',
-          { style: 'color: blue;' },
-          'Loading user data...',
-        ),
-      ],
-    }),
-
-    Show({
-      when: userResource.error,
-      children: [
-        createFalconElement(
-          'p',
-          { style: 'color: red;' },
-          () => `Error: ${userResource.error().message}`,
-        ),
-      ],
-    }),
-
-    Show({
-      // Show the data only when it exists and we are not in a loading state.
-      when: () => userResource() && !userResource.loading(),
-      children: [
-        createFalconElement(
-          'div',
-          {
-            style:
-              'border: 1px solid green; padding: 10px; border-radius: 5px;',
-          },
-          createFalconElement('p', {}, () => `ID: ${userResource().id}`),
-          createFalconElement('p', {}, () => `Name: ${userResource().name}`),
-          createFalconElement('p', {}, () => `Email: ${userResource().email}`),
-        ),
-      ],
-    }),
-  );
-}
-
-// --- 1. Define Page Components ---
-// Each "page" is just a regular component.
+// --- 2. Page Components ---
 
 function HomePage() {
   return createFalconElement(
     'div',
     {},
-    createFalconElement('h2', {}, 'Home Page'),
+    createFalconElement('h2', {}, 'Welcome to FalconJS'),
     createFalconElement(
       'p',
       {},
-      'Welcome to the FalconJS router demo! Click the links above.',
+      'This is a showcase of the core features of the FalconJS framework.',
+    ),
+    createFalconElement(
+      'p',
+      {},
+      'Use the navigation above to explore the different demos.',
     ),
   );
 }
 
-function AboutPage() {
+function SignalsPage() {
+  const [count, setCount] = createSignal(0);
+  const doubleCount = createMemo(() => count() * 2);
+  const isEven = createMemo(() => count() % 2 === 0);
+
   return createFalconElement(
     'div',
     {},
-    createFalconElement('h2', {}, 'About Page'),
-    createFalconElement(
-      'p',
-      {},
-      'This entire application is running client-side. Notice how the URL changes without a page reload.',
-    ),
-  );
-}
-
-// A convenience helper for code that should run once on mount.
-const onMount = fn => {
-  // This simple version of onMount just uses createEffect.
-  // A key assumption is that the user won't put signals inside
-  // that would cause it to re-run, defeating the "once" purpose.
-  createEffect(fn);
-};
-
-// --- The Timer Component ---
-// This component demonstrates the use of onMount and onCleanup.
-function TimerComponent() {
-  const [count, setCount] = createSignal(0);
-
-  // This effect will run once when the component is created (mounted).
-  onMount(() => {
-    console.log('%cTimerComponent MOUNTED', 'color: green; font-weight: bold;');
-
-    // Set up a side effect: an interval timer.
-    const timerId = setInterval(() => {
-      // This is a standard signal update.
-      setCount(count() + 1);
-    }, 1000);
-
-    // Register a cleanup function for this effect's scope.
-    // This will run when the component is destroyed (unmounted).
-    onCleanup(() => {
-      console.log(
-        `%cTimerComponent CLEANUP: Clearing interval ${timerId}`,
-        'color: red; font-weight: bold;',
-      );
-      clearInterval(timerId); // <-- This prevents memory leaks!
-    });
-  });
-
-  // The UI for the component.
-  return createFalconElement(
-    'div',
-    { style: 'border: 1px solid #ccc; padding: 10px; margin-top: 10px;' },
-    createFalconElement('h3', {}, 'Live Timer'),
-    // This text will be reactive thanks to the signal.
+    createFalconElement('h2', {}, 'Reactivity Demo (Signals & Memos)'),
+    // --- THE FIX IS HERE ---
+    // We now pass functions as children to make the text reactive.
     createFalconElement('p', {}, () => `Count: ${count()}`),
+    createFalconElement('p', {}, () => `Double Count: ${doubleCount()}`),
+    createFalconElement(
+      'button',
+      { onclick: () => setCount(count() + 1) },
+      'Increment',
+    ),
+    Show({
+      when: isEven,
+      children: [createFalconElement('p', { class: 'tag' }, 'Count is Even')],
+    }),
   );
 }
 
-// --- 1. The Reactive Child Component ---
-// This component knows how to handle reactive props.
-function ReactiveGreeting(props) {
-  // `props.name` is the signal's getter function: () => "initial value"
-  const { name } = props;
-
-  // Create a text node that we can update directly.
-  const greetingText = document.createTextNode('');
-
-  // Create an effect that listens to the `name` signal.
-  createEffect(() => {
-    // When the signal from the parent changes,
-    // this effect re-runs and updates the text node's content.
-    const newName = name(); // We call the signal's getter here!
-    console.log(
-      `%cEffect in ReactiveGreeting: Name changed to "${newName}"`,
-      'color: dodgerblue;',
-    );
-    greetingText.textContent = `Hello, ${newName}!`;
-  });
-
-  // The component returns a static element containing our reactive text node.
-  return createFalconElement('h2', {}, greetingText);
-}
-
-let nextId = 4;
-const [items, setItems] = createSignal([
-  { id: 1, text: 'Learn FalconJs Core' },
-  { id: 2, text: 'Build Conditional Rendering' },
-  { id: 3, text: 'Implement List Rendering' },
-]);
-
-// A simple shuffle function
-function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
-
-// --- Reactive State ---
-const [count, setCount] = createSignal(0);
-
-// Signal to control the visibility of the counter section
-const [showCounter, setShowCounter] = createSignal(true);
-const [inputText, setInputText] = createSignal('');
-
-// use createMemo for derived values
-const doubleCount = createMemo(() => {
-  console.log('Memo: Calculating doubleCount');
-  return count() * 2;
-});
-const isEven = createMemo(() => count() % 2 === 0);
-
-// --- Components (using createFalconElement) ---
-function CounterDisplay() {
-  // Pass the signal getter function directly as a child for reactive text
-  return createFalconElement('p', {}, 'Count: ', count);
-}
-
-// Wrapped in its own Show to only appear when count > 5
-function DoubleCounterDisplay() {
-  const shouldShow = createMemo(() => count() > 5); // Memoize the condition
-  return Show({
-    when: shouldShow,
-    children: [createFalconElement('p', {}, 'Double Count: ', doubleCount)],
-  });
-}
-
-// Button to increment the count
-function ClickButton() {
-  const handleClick = () => {
-    setCount(count() + 1);
-  };
-  return createFalconElement(
-    'button',
-    { onclick: handleClick },
-    'Increment Count',
-  );
-}
-
-// Button to toggle the visibility of the counter section
-function ToggleButton() {
-  const handleClick = () => {
-    const currentVal = showCounter();
-    setShowCounter(!currentVal); // Toggle the signal
-  };
-  // Button text changes reactively based on the showCounter state
-  const buttonText = createMemo(() =>
-    showCounter() ? 'Hide Counter Section' : 'Show Counter Section',
-  );
-  return createFalconElement(
-    'button',
-    { onclick: handleClick },
-    buttonText, // Pass the memo getter for reactive button text
-  );
-}
-
-// Input field whose value is synced with inputText signal
-function TextInput() {
-  const handleInput = event => {
-    setInputText(event.target.value);
-  };
-  // For reactive attributes like 'value', pass a function (signal getter)
-  return createFalconElement('input', {
-    type: 'text',
-    value: inputText, // Pass the signal getter function
-    oninput: handleInput, // Standard event listener
-  });
-}
-
-// Displays the text currently in the input field
-function DisplayInputText() {
-  // Pass the signal getter for reactive text display
-  return createFalconElement('p', {}, 'You typed: ', inputText);
-}
-
-// --- Main App Component ---
-// Assembles the UI using the components and Show for conditional logic
-function App() {
-  // Create a signal to hold the name.
-  const [name, setName] = createSignal('World');
-
-  // A signal to control the visibility of the TimerComponent.
-  const [showTimer, setShowTimer] = createSignal(true);
-
-  const handleInput = event => {
-    setName(event.target.value);
-  };
-
-  const addItem = () =>
-    setItems([...items(), { id: nextId++, text: `New Task #${nextId - 1}` }]);
-
-  const shuffleItems = () => setItems(shuffle([...items()])); // Create a shuffled copy
+function ListPage() {
+  let nextId = 4;
+  const [items, setItems] = createSignal([
+    { id: 1, text: 'Render a list' },
+    { id: 2, text: 'Preserve state on shuffle' },
+    { id: 3, text: 'Minimize DOM updates' },
+  ]);
+  const shuffle = arr => arr.slice().sort(() => Math.random() - 0.5);
 
   return createFalconElement(
     'div',
-    { id: 'app-container', class: 'counter-section' },
-    createFalconElement('h1', {}, 'FALCON JS'),
-    // --- Navigation Header ---
-    createFalconElement(
-      'header',
-      {
-        style: 'background-color: #f0f0f0; padding: 15px; border-radius: 8px;',
-      },
-      createFalconElement(
-        'nav',
-        { style: 'display: flex; gap: 20px; font-size: 1.1em;' },
-        // Use the Link component for navigation
-        Link({ to: '/', children: ['Home'] }),
-        Link({ to: '/about', children: ['About'] }),
-      ),
-    ),
-
-    // --- Content Area ---
-    // The Route components will render their content here based on the URL.
-    createFalconElement(
-      'main',
-      { style: 'padding: 20px 0;' },
-      Route({ path: '/', children: [HomePage({})] }),
-      Route({ path: '/about', children: [AboutPage({})] }),
-    ),
-    createFalconElement('hr'),
-    createFalconElement('br'),
-    createFalconElement('br'),
-    // Add the button to toggle the counter section's visibility
-    ToggleButton(),
-
-    createFalconElement('hr'),
-
-    // --- Use Show Component for the Counter Section ---
-    Show({
-      when: showCounter, // The reactive condition (signal getter)
-      fallback: createFalconElement(
-        'p',
-        { style: 'color: gray;' },
-        'Counter section is hidden.',
-      ),
-      children: [
-        // This div and its contents will only be rendered when showCounter() is true
-        createFalconElement(
-          'div',
-          { class: 'counter-section' },
-          CounterDisplay(),
-          DoubleCounterDisplay(), // Contains nested Show component
-          ClickButton(),
-
-          // Example of showing Even/Odd status conditionally
-          Show({
-            when: isEven,
-            children: [createFalconElement('p', {}, 'Count is Even')],
-          }),
-          Show({
-            when: () => !isEven(),
-            children: [createFalconElement('p', {}, 'Count is Odd')],
-          }),
-        ),
-      ],
-    }),
-    // --- End Show Component ---
-
-    createFalconElement('hr'),
-
-    // --- Text Input Section ---
-    TextInput(),
-    DisplayInputText(),
-
-    // FOR
-    createFalconElement('h1', {}, 'Keyed Todo List'),
-    createFalconElement(
-      'p',
-      {},
-      'Click an item to highlight it. Then shuffle the list!',
-    ),
+    {},
+    createFalconElement('h2', {}, 'Keyed List Rendering (<For>)'),
     createFalconElement(
       'div',
-      { style: 'margin: 10px; display:flex; gap: 10px;' },
-      createFalconElement('button', { onclick: addItem }, 'Add Item'),
+      { class: 'controls' },
       createFalconElement(
         'button',
-        { onclick: shuffleItems },
-        'Shuffle Items 🔀',
+        {
+          onclick: () =>
+            setItems([...items(), { id: nextId++, text: `New Item` }]),
+        },
+        'Add Item',
+      ),
+      createFalconElement(
+        'button',
+        { onclick: () => setItems(shuffle(items())) },
+        'Shuffle Items',
       ),
     ),
     createFalconElement(
@@ -411,63 +94,115 @@ function App() {
           item =>
             createFalconElement(
               'li',
-              { onclick: e => e.target.classList.toggle('highlight') },
+              {
+                onclick: e => e.target.classList.toggle('highlight'),
+              },
               `[ID: ${item.id}] - ${item.text}`,
             ),
         ],
       }),
     ),
-
-    createFalconElement('hr', {}),
-    createFalconElement('br', {}),
-    createFalconElement('br', {}),
-    createFalconElement('h1', {}, 'Reactive Props Demo'),
-    createFalconElement('p', {}, 'Edit the text in the box below.'),
-    createFalconElement('input', {
-      type: 'text',
-      value: name, // Pass signal getter directly for reactive attribute
-      oninput: handleInput, // Update signal on every keystroke
-      style: 'padding: 5px; font-size: 1em;',
-    }),
-    createFalconElement('hr', {}),
-
-    // Pass the name signal's getter function directly as a prop.
-    ReactiveGreeting({ name: name }),
-    createFalconElement('hr', {}),
-    createFalconElement('br', {}),
-    createFalconElement('br', {}),
-
-    createFalconElement('h1', {}, 'Component Lifecycle Demo'),
-    createFalconElement(
-      'button',
-      {
-        onclick: () => setShowTimer(!showTimer()),
-      },
-      'Toggle Timer Component',
-    ),
-
-    Show({
-      when: showTimer,
-      children: [TimerComponent({})],
-      fallback: createFalconElement(
-        'p',
-        { style: 'margin-top: 10px;' },
-        'Timer is hidden.',
-      ),
-    }),
-    createFalconElement('hr', {}),
-    createFalconElement('br', {}),
-    createFalconElement('br', {}),
-    createFalconElement('h1', {}, 'Async Data Fetching Demo'),
-    UserProfile({}),
   );
 }
 
-// --- Rendering Logic ---
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  console.error('#root element not found in index.html!');
-} else {
-  render(App, rootElement);
-  console.log('Falcon App rendered!');
+function StorePage() {
+  const toggleTheme = () => {
+    setStore(prev => ({ theme: prev.theme === 'light' ? 'dark' : 'light' }));
+  };
+
+  return createFalconElement(
+    'div',
+    {},
+    createFalconElement('h2', {}, 'Global Store (createStore)'),
+    createFalconElement('p', {}, () => `The current theme is: ${store.theme}`),
+    createFalconElement('button', { onclick: toggleTheme }, 'Toggle Theme'),
+  );
 }
+
+function FetchingPage() {
+  const fetchUserData = async id => {
+    await new Promise(res => setTimeout(res, 1000));
+    const response = await fetch(
+      `https://jsonplaceholder.typicode.com/users/${id}`,
+    );
+    if (!response.ok) throw new Error('Failed to fetch');
+    return response.json();
+  };
+
+  const [userId, setUserId] = createSignal(1);
+  const userData = createResource(() => fetchUserData(userId()));
+
+  return createFalconElement(
+    'div',
+    {},
+    createFalconElement('h2', {}, 'Async Data Fetching (createResource)'),
+    createFalconElement(
+      'div',
+      { class: 'controls' },
+      createFalconElement(
+        'button',
+        { onclick: () => setUserId(1) },
+        'Fetch User 1',
+      ),
+      createFalconElement(
+        'button',
+        { onclick: () => setUserId(2) },
+        'Fetch User 2',
+      ),
+    ),
+    Show({
+      when: userData.loading,
+      children: [createFalconElement('p', {}, 'Loading...')],
+    }),
+    Show({
+      when: () => userData() && !userData.loading(),
+      children: [
+        createFalconElement(
+          'div',
+          { class: 'card' },
+          createFalconElement('p', {}, () => `Name: ${userData().name}`),
+          createFalconElement('p', {}, () => `Email: ${userData().email}`),
+        ),
+      ],
+    }),
+  );
+}
+
+// --- Main App Layout ---
+function App() {
+  // An effect to apply the theme class from the store to the body.
+  createEffect(() => {
+    document.body.className = store.theme;
+  });
+
+  return createFalconElement(
+    'div',
+    { id: 'app-container' },
+    createFalconElement(
+      'header',
+      {},
+      createFalconElement('h1', {}, '🦅 FalconJS'),
+      createFalconElement(
+        'nav',
+        {},
+        Link({ to: '/', children: ['Home'] }),
+        Link({ to: '/signals', children: ['Signals'] }),
+        Link({ to: '/list', children: ['Lists'] }),
+        Link({ to: '/store', children: ['Store'] }),
+        Link({ to: '/fetching', children: ['Fetching'] }),
+      ),
+    ),
+    createFalconElement(
+      'main',
+      {},
+      Route({ path: '/', children: [HomePage({})] }),
+      Route({ path: '/signals', children: [SignalsPage({})] }),
+      Route({ path: '/list', children: [ListPage({})] }),
+      Route({ path: '/store', children: [StorePage({})] }),
+      Route({ path: '/fetching', children: [FetchingPage({})] }),
+    ),
+  );
+}
+
+// --- Render ---
+render(App, document.getElementById('root'));
