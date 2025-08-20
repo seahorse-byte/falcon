@@ -1,7 +1,11 @@
 {
   "name": "@olsigjeci/falconjs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A lightweight, fine-grained reactive JS framework built from scratch.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/falconjs.git"
+  },
   "type": "module",
   "main": "./dist/falcon.umd.cjs",
   "module": "./dist/falcon.es.js",
@@ -20,7 +24,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^5.0.1",
+    "@vitejs/plugin-react": "^4.2.1",
     "vite": "^5.0.0"
   },
   "keywords": [
