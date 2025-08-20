@@ -1,18 +1,35 @@
 import { defineConfig } from 'vite';
 import path from 'path';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  // This section tells the build tool (esbuild) to use our custom functions
+  // whenever it sees JSX syntax.
+  esbuild: {
+    jsxFactory: 'createFalconElement',
+    jsxFragment: 'Fragment',
+    // --- THE FIX IS HERE ---
+    // This tells esbuild to treat .js files as .jsx files,
+    // which is necessary for Vite's dependency scanner.
+    loader: {
+      '.js': 'jsx',
+    },
+  },
+  plugins: [
+    // We configure the React plugin to use our custom settings.
+    react({
+      // This is the crucial part. It tells the plugin to use the "classic"
+      // runtime, which relies on the jsxFactory setting above, instead of
+      // trying to automatically import from React.
+      jsxRuntime: 'classic',
+    }),
+  ],
   build: {
-    // This is the part that tells Vite we are building a library.
     lib: {
-      // The entry point for our library.
       entry: path.resolve(__dirname, 'src/index.js'),
-      // The name for the global variable in UMD builds.
       name: 'FalconJS',
-      // The file names for the output bundles.
       fileName: format => `falcon.${format}.js`,
     },
-    // We don't need to worry about this for now, but it can be useful for debugging.
     sourcemap: true,
   },
 });
