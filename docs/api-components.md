@@ -1,4 +1,5 @@
-FalconJS API Reference: Components
+# FalconJS API Reference: Components
+
 This document provides a reference for the built-in components that handle rendering logic in FalconJS.
 
 ```bash
@@ -28,36 +29,41 @@ const [isLoggedIn, setIsLoggedIn] = createSignal(false);
 </div>
 ```
 
-```bash
+```jsx
 <For>
-Efficiently renders a list of items from a reactive array. It uses keyed reconciliation to minimize DOM updates, making it highly performant for dynamic lists.
+{/* Efficiently renders a list of items from a reactive array. It uses keyed reconciliation to minimize DOM updates, making it highly performant for dynamic lists.
 
-Props
-each: A reactive array (usually a signal).
+    Props
+    each: A reactive array (usually a signal).
 
-Children
-The <For> component expects a single child: a mapping function that receives an item from the array and its index, and returns the content to be rendered for that item.
+    Children */}
+{/* The <For> component expects a single child: a mapping function that receives an item from the array and its index, and returns the content to be rendered for that item. */}
 ```
 
 Example
+
+```jsx
 import { createSignal, For } from '@olsigjeci/falconjs';
 
 const [todos, setTodos] = createSignal([
-{ id: 1, text: 'Learn FalconJS', completed: true },
-{ id: 2, text: 'Build an app', completed: false }
+  { id: 1, text: 'Learn FalconJS', completed: true },
+  { id: 2, text: 'Build an app', completed: false },
 ]);
+```
 
-```bash
+```jsx
 <ul>
   <For each={todos}>
     {(todo, index) => (
-      <li>{index + 1}: {todo.text}</li>
+      <li>
+        {index + 1}: {todo.text}
+      </li>
     )}
   </For>
 </ul>
 ```
 
-```bash
+````bash
 <Fragment>
 A special component that allows you to group multiple elements without adding an extra wrapper node to the DOM. This is useful for keeping your HTML output clean.
 
@@ -68,18 +74,23 @@ Example
 Without a Fragment, you would need a wrapper <div>:
 
 // Renders a <div> with two <p> tags inside.
-function UserInfo() {
-return (
 
-<div>
-<p>Name: John</p>
+
+```jsx
+    function UserInfo() {
+        return (
+
+            <div>
+    <p>Name: John</p>
 <p>Age: 30</p>
 </div>
 );
 }
+```
 
-With a Fragment, the <p> tags are rendered directly without the extra <div>:
+# With a Fragment, the <p> tags are rendered directly without the extra <div>:
 
+```jsx
 import { Fragment } from '@olsigjeci/falconjs';
 
 function UserInfo() {
@@ -92,3 +103,4 @@ return (
 );
 }
 ```
+````

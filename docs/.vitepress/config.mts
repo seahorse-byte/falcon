@@ -15,6 +15,9 @@ export default {
         items: [
           { text: 'API: Reactivity', link: '/api-reactivity' },
           { text: 'API: Components', link: '/api-components' },
+          { text: 'API: Routing', link: '/api-routing' },
+          { text: 'API: State Management', link: '/api-state-management' },
+          { text: 'API: Async', link: '/api-async' },
         ],
       },
     ],
