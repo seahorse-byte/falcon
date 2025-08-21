@@ -27,5 +27,12 @@ export default {
         ],
       },
     ],
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/seahorse-byte/falconjs' },
+      {
+        icon: 'npm',
+        link: 'https://www.npmjs.com/package/@olsigjeci/falconjs',
+      },
+    ],
   },
 };
