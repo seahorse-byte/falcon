@@ -1,4 +1,4 @@
-import { createEffect, createMemo } from './reactivity.js';
+import { createEffect, createMemo, untrack } from './reactivity.js';
 
 function appendChild(parent, child) {
   if (Array.isArray(child)) {
@@ -80,6 +80,14 @@ export function render(content, container) {
   appendChild(container, elementToRender);
 }
 
+/**
+ * A special component that renders its children without a wrapper element.
+ * The JSX transform will use this for the <>...</> syntax.
+ */
+export function Fragment(props) {
+  return props.children;
+}
+
 function normalizeNode(content) {
   if (content instanceof Node) return content;
   if (content == null || typeof content === 'boolean') {
@@ -151,6 +159,48 @@ export function For(props) {
   return fragment;
 }
 
+// export function Show(props) {
+//   const { when, fallback, children } = props;
+//   const marker = document.createComment('falcon-show');
+//   let currentContentNodes = [];
+//   const condition = createMemo(() => !!when());
+
+//   createEffect(() => {
+//     const showContent = condition();
+//     const parent = marker.parentNode;
+//     if (!parent) return;
+
+//     if (currentContentNodes.length > 0) {
+//       currentContentNodes.forEach(node => {
+//         if (node.parentNode === parent) parent.removeChild(node);
+//       });
+//     }
+//     currentContentNodes = [];
+
+//     const contentToRender = showContent ? children : fallback;
+//     const fragment = document.createDocumentFragment();
+
+//     function renderContentPart(part) {
+//       if (Array.isArray(part)) {
+//         part.forEach(renderContentPart);
+//       } else if (typeof part === 'function') {
+//         renderContentPart(part());
+//       } else if (part instanceof Node) {
+//         fragment.appendChild(part);
+//       } else if (part != null && typeof part !== 'boolean') {
+//         fragment.appendChild(document.createTextNode(String(part)));
+//       }
+//     }
+//     renderContentPart(contentToRender);
+
+//     const insertedNodes = Array.from(fragment.childNodes);
+//     parent.insertBefore(fragment, marker.nextSibling);
+//     currentContentNodes = insertedNodes;
+//   });
+
+//   return marker;
+// }
+
 export function Show(props) {
   const { when, fallback, children } = props;
   const marker = document.createComment('falcon-show');
@@ -174,7 +224,7 @@ export function Show(props) {
 
     function renderContentPart(part) {
       if (Array.isArray(part)) {
-        part.forEach(renderContentPart);
+        part.forEach(p => renderContentPart(p));
       } else if (typeof part === 'function') {
         renderContentPart(part());
       } else if (part instanceof Node) {
@@ -183,7 +233,12 @@ export function Show(props) {
         fragment.appendChild(document.createTextNode(String(part)));
       }
     }
-    renderContentPart(contentToRender);
+
+    // We wrap the rendering of children in `untrack` to prevent the <Show>
+    // component's effect from subscribing to signals used inside the children.
+    untrack(() => {
+      renderContentPart(contentToRender);
+    });
 
     const insertedNodes = Array.from(fragment.childNodes);
     parent.insertBefore(fragment, marker.nextSibling);

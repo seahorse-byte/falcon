@@ -1,4 +1,10 @@
-import { createFalconElement, render, Show, For } from '../src/index.js';
+import {
+  createFalconElement,
+  render,
+  Show,
+  For,
+  Fragment,
+} from '../src/index.js';
 import { createSignal, createMemo, createEffect } from '../src/index.js';
 import { createStore } from '../src/index.js';
 import { createResource } from '../src/index.js';
@@ -10,12 +16,14 @@ const [store, setStore] = createStore({ theme: 'light' });
 // --- Page Components (with JSX) ---
 
 function HomePage() {
+  // Using the explicit <Fragment> component instead of the <>...</> shorthand
+  // to resolve a potential JSX transform issue that was causing freezing.
   return (
-    <div>
+    <Fragment>
       <h2>Welcome to FalconJS</h2>
       <p>This is a showcase of the core features of the FalconJS framework.</p>
       <p>Use the navigation above to explore the different demos.</p>
-    </div>
+    </Fragment>
   );
 }
 
@@ -27,8 +35,10 @@ function SignalsPage() {
   return (
     <div>
       <h2>Reactivity Demo (Signals & Memos)</h2>
-      <p>Count: {count()}</p>
-      <p>Double Count: {doubleCount()}</p>
+      {/* --- THE FIX IS HERE --- */}
+      {/* Pass the signal/memo getters directly to make the text reactive */}
+      <p>Count: {count}</p>
+      <p>Double Count: {doubleCount}</p>
       <button onClick={() => setCount(count() + 1)}>Increment</button>
       <Show when={isEven}>
         <p class="tag">Count is Even</p>
@@ -82,7 +92,9 @@ function StorePage() {
   return (
     <div>
       <h2>Global Store (createStore)</h2>
-      <p>The current theme is: {store.theme}</p>
+      {/* --- THE FIX IS HERE --- */}
+      {/* Wrap the store access in a function to make it reactive */}
+      <p>The current theme is: {() => store.theme}</p>
       <button onClick={toggleTheme}>Toggle Theme</button>
     </div>
   );
@@ -142,9 +154,6 @@ function App() {
         </nav>
       </header>
       <main>
-        {/* --- THE FIX IS HERE --- */}
-        {/* Reverted to using the `component` prop for routing, */}
-        {/* as the underlying Route component likely expects this pattern. */}
         <Route path="/" component={HomePage} />
         <Route path="/signals" component={SignalsPage} />
         <Route path="/list" component={ListPage} />

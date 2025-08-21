@@ -2,7 +2,7 @@
 // It exports all the public APIs from the different modules.
 
 // Core rendering functions
-export { createFalconElement, render, Show, For } from './core.js';
+export { createFalconElement, render, Show, For, Fragment } from './core.js';
 
 // Reactivity primitives
 export {

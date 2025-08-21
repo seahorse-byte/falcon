@@ -111,6 +111,24 @@ export function createMemo(fn) {
 }
 
 /**
+ * Runs a function without tracking its dependencies in the current reactive scope.
+ * @param {Function} fn The function to run.
+ */
+export function untrack(fn) {
+  const prevObserver = getCurrentObserver();
+  if (prevObserver) {
+    effectStack.pop(); // Temporarily remove the current effect from the stack
+  }
+  try {
+    return fn();
+  } finally {
+    if (prevObserver) {
+      effectStack.push(prevObserver); // Restore the effect
+    }
+  }
+}
+
+/**
  * Runs all cleanup logic for a given effect.
  * @param {Function} effect The effect function to clean up.
  */
