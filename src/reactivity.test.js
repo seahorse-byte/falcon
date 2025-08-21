@@ -12,7 +12,6 @@ describe('Reactivity System', () => {
     expect(count()).toBe(5);
   });
 
-  // --- THE FIX IS HERE ---
   // The test function is now `async`.
   it('createEffect should run when a dependency changes', async () => {
     const [count, setCount] = createSignal(0);
@@ -34,7 +33,6 @@ describe('Reactivity System', () => {
     expect(effectFn).toHaveBeenCalledTimes(2);
   });
 
-  // --- THE FIX IS HERE ---
   // The test function is now `async`.
   it('createMemo should only recompute when its dependencies change', async () => {
     const [count, setCount] = createSignal(0);
