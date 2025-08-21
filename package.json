@@ -2,9 +2,13 @@
   "name": "@olsigjeci/falconjs",
   "version": "0.1.1",
   "description": "A lightweight, fine-grained reactive JS framework built from scratch.",
+  "homepage": "https://falconjs.netlify.app",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-username/falconjs.git"
+    "url": "git+https://github.com/seahorse-byte/falconjs"
+  },
+  "bugs": {
+    "url": "https://github.com/olsigjeci/falconjs/issues"
   },
   "type": "module",
   "main": "./dist/falcon.umd.cjs",
