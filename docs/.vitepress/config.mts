@@ -1,17 +1,23 @@
 // docs/.vitepress/config.js
-
 export default {
   title: 'FalconJS',
   description: 'A lightweight, fine-grained reactive JS framework.',
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
+      { text: 'Tutorial', link: '/getting-started' },
       { text: 'API', link: '/api-reactivity' },
     ],
 
     sidebar: [
       {
-        text: 'Guide',
+        text: 'Tutorials',
+        items: [
+          { text: 'Getting Started - Todo App', link: '/getting-started' },
+        ],
+      },
+      {
+        text: 'API Reference',
         items: [
           { text: 'API: Reactivity', link: '/api-reactivity' },
           { text: 'API: Components', link: '/api-components' },
