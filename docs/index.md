@@ -1,25 +1,23 @@
 ---
-# https://vitepress.dev/reference/default-theme-home-page
 layout: home
 
 hero:
-  name: "My Awesome Project"
-  text: "A VitePress Site"
-  tagline: My great project tagline
+  name: 'FalconJS'
+  text: 'A Modern, Fine-Grained Reactive Framework.'
+  tagline: Build fast, efficient user interfaces with a lightweight framework inspired by the best ideas in modern web development.
   actions:
     - theme: brand
-      text: Markdown Examples
-      link: /markdown-examples
+      text: Get Started
+      link: /api-reactivity
     - theme: alt
-      text: API Examples
-      link: /api-examples
+      text: View on GitHub
+      link: https://github.com/seahorse-byte/falconjs
 
 features:
-  - title: Feature A
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature B
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature C
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
+  - title: 'Fine-Grained Reactivity'
+    details: "Built from the ground up with signals, effects, and memos. FalconJS updates only what's necessary, without a Virtual DOM, leading to exceptional performance."
+  - title: 'Modern JSX Syntax'
+    details: 'Write your components with the clean, intuitive, and familiar HTML-like syntax of JSX. Our build process handles the transformation to optimized JavaScript.'
+  - title: 'Complete Feature Set'
+    details: 'Comes with a built-in router, global state management, and async data handling primitives, giving you everything you need to build a complete application.'
 ---
-
