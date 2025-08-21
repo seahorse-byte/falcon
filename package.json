@@ -1,6 +1,6 @@
 {
   "name": "@olsigjeci/falconjs",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A lightweight, fine-grained reactive JS framework built from scratch.",
   "homepage": "https://falconjs.netlify.app",
   "repository": {
