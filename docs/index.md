@@ -67,7 +67,7 @@ function Counter() {
 Launch a new FalconJS project with a single command.
 
 ```bash
-npm create @olsigjeci/falcon-start my-falcon-app
+npx @olsigjeci/falcon-start my-falcon-app
 ```
 
 ---
