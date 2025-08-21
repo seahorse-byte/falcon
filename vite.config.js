@@ -3,24 +3,17 @@ import path from 'path';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  // This section tells the build tool (esbuild) to use our custom functions
-  // whenever it sees JSX syntax.
+  // We'll define the JSX transform here, which is a more direct
+  // instruction for the underlying bundler (esbuild).
   esbuild: {
     jsxFactory: 'createFalconElement',
     jsxFragment: 'Fragment',
-    // --- THE FIX IS HERE ---
-    // This tells esbuild to treat .js files as .jsx files,
-    // which is necessary for Vite's dependency scanner.
-    loader: {
-      '.js': 'jsx',
-    },
   },
   plugins: [
-    // We configure the React plugin to use our custom settings.
+    // The react plugin is still needed to enable JSX processing in files.
+    // We configure it to use the classic runtime, which respects the
+    // jsxFactory we defined in the esbuild config above.
     react({
-      // This is the crucial part. It tells the plugin to use the "classic"
-      // runtime, which relies on the jsxFactory setting above, instead of
-      // trying to automatically import from React.
       jsxRuntime: 'classic',
     }),
   ],

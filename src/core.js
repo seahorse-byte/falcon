@@ -66,10 +66,18 @@ export function createFalconElement(tag, props, ...children) {
   return element;
 }
 
-export function render(component, container) {
+/**
+ * Renders content into a container element.
+ * It now handles both component functions and pre-rendered JSX elements.
+ * @param {Function|Node} content The component function or JSX element to render.
+ * @param {HTMLElement} container The DOM element to render into.
+ */
+export function render(content, container) {
   container.innerHTML = '';
-  const mainElement = component();
-  appendChild(container, mainElement);
+  // If content is a function, it's a component that needs to be called.
+  // If it's already a Node (from JSX), we can use it directly.
+  const elementToRender = typeof content === 'function' ? content() : content;
+  appendChild(container, elementToRender);
 }
 
 function normalizeNode(content) {

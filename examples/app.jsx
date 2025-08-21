@@ -112,10 +112,12 @@ function FetchingPage() {
         <p>Loading...</p>
       </Show>
       <Show when={() => userData() && !userData.loading()}>
-        <div class="card">
-          <p>Name: {userData().name}</p>
-          <p>Email: {userData().email}</p>
-        </div>
+        {() => (
+          <div class="card">
+            <p>Name: {userData().name}</p>
+            <p>Email: {userData().email}</p>
+          </div>
+        )}
       </Show>
     </div>
   );
@@ -141,22 +143,13 @@ function App() {
       </header>
       <main>
         {/* --- THE FIX IS HERE --- */}
-        {/* We now pass the component as a child, not a prop */}
-        <Route path="/">
-          <HomePage />
-        </Route>
-        <Route path="/signals">
-          <SignalsPage />
-        </Route>
-        <Route path="/list">
-          <ListPage />
-        </Route>
-        <Route path="/store">
-          <StorePage />
-        </Route>
-        <Route path="/fetching">
-          <FetchingPage />
-        </Route>
+        {/* Reverted to using the `component` prop for routing, */}
+        {/* as the underlying Route component likely expects this pattern. */}
+        <Route path="/" component={HomePage} />
+        <Route path="/signals" component={SignalsPage} />
+        <Route path="/list" component={ListPage} />
+        <Route path="/store" component={StorePage} />
+        <Route path="/fetching" component={FetchingPage} />
       </main>
     </div>
   );
