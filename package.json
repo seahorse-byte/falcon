@@ -1,6 +1,6 @@
 {
   "name": "@olsigjeci/falconjs",
-  "version": "0.1.2",
+  "version": "0.1.1",
   "description": "A lightweight, fine-grained reactive JS framework built from scratch.",
   "repository": {
     "type": "git",

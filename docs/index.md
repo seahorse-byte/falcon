@@ -11,7 +11,7 @@ hero:
       link: /api-reactivity
     - theme: alt
       text: View on GitHub
-      link: https://github.com/olsigjeci/falconjs # Replace with your actual repo URL
+      link: https://github.com/seahorse-byte/falconjs
 
 features:
   - title: 'Fine-Grained Reactivity'
@@ -76,5 +76,5 @@ npx @olsigjeci/falcon-start my-falcon-app
 
 FalconJS is an open-source project and we welcome contributions of all kinds.
 
-- **Found a bug?** Have a feature request? Open an issue on our [GitHub repository](https://github.com/olsigjeci/falconjs/issues).
+- **Found a bug?** Have a feature request? Open an issue on our [GitHub repository](https://github.com/seahorse-byte/falconjs/issues).
 - **Want to contribute?** We'd love your help! Feel free to fork the repository and submit a pull request.
