@@ -8,9 +8,9 @@ Fine-Grained Reactivity: Built from the ground up with reactive primitives (crea
 
 Component-Based Architecture: Create reusable UI components as simple JavaScript functions with modern JSX syntax.
 
-High-Performance Rendering: Includes efficient, keyed list rendering (<For>) and conditional rendering (<Show>) components.
+High-Performance Rendering: Includes efficient, keyed list rendering (`<For>`) and conditional rendering (`<Show>`) components.
 
-Client-Side Routing: A complete routing solution (<Route>, <Link>) for building fast single-page applications.
+Client-Side Routing: A complete routing solution (`<Route>, <Link>`) for building fast single-page applications.
 
 Global State Management: A simple yet powerful createStore utility for managing shared application state.
 
@@ -54,8 +54,8 @@ function Counter() {
 }
 ```
 
-List Rendering with <For>
-The <For> component efficiently renders a list of items from an array. It uses keyed reconciliation to minimize DOM operations during updates, shuffles, or re-orders.
+List Rendering with `<For>`
+The `<For>` component efficiently renders a list of items from an array. It uses keyed reconciliation to minimize DOM operations during updates, shuffles, or re-orders.
 
 ```jsx
 import { createSignal, For } from '@olsigjeci/falconjs';
