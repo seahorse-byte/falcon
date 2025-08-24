@@ -1,5 +1,7 @@
 # 🦅 FalconJS
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/46b3aec6-f9a8-4ce4-8c69-06041e0f1e98/deploy-status)](https://app.netlify.com/projects/falconjs/deploys)
+
 FalconJS is a lightweight and powerful JavaScript framework for building modern user interfaces. Inspired by the principles of SolidJS, it provides a fine-grained reactive system that minimizes DOM updates and maximizes performance, all without a Virtual DOM.
 
 ## Key Features
