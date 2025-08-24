@@ -16,6 +16,14 @@ Global State Management: A simple yet powerful createStore utility for managing 
 
 Async Handling: A dedicated createResource primitive to elegantly manage asynchronous data fetching.
 
+### Documentation
+
+See [https://falconjs.netlify.app/](https://falconjs.netlify.app/)
+
+### API
+
+See [https://falconjs.netlify.app/api-reactivity.html](https://falconjs.netlify.app/api-reactivity.html)
+
 ### Getting Started
 
 The best way to start a new FalconJS project is by using the official starter template. Open your terminal and run:
